@@ -1,7 +1,10 @@
 #pragma once
 
+#include <SDL3/SDL_render.h>
+#include <array>
 #include <cstdint>
 #include <stack>
+#include <string>
 #include <vector>
 
 #define MEMORY_SIZE 0x1000
@@ -10,8 +13,8 @@
 #define DELAY_HZ 60
 #define START_ADDRESS 0x0200
 #define FONT_START_ADDRESS 0x50
-#define WIDTH 1280
-#define HEIGHT 640
+#define ROWS 64
+#define COLLUMNS 32
 
 class Chip8 {
     public:
@@ -20,18 +23,19 @@ class Chip8 {
         std::stack<uint16_t> stack;
         uint8_t delay_timer;
         uint8_t sound_timer;
-        std::vector<uint8_t> registers;
-        std::vector<uint8_t> memory;
-
+        std::array<uint8_t, REGISTER_COUNT> registers;
+        std::vector<uint8_t> memory = std::vector<uint8_t>(MEMORY_SIZE);
+        uint8_t display[ROWS][COLLUMNS];
     public:
         Chip8();
 
-        void cls(); // 00E0
-        void jmp(); // 1NNN
-        void setVX(); // 6XNN
-        void addVX(); // 7XNN
-        void setI(); // ANNN
-        void draw(); // DXYN
+        void cls(SDL_Renderer *); // 00E0
+        void jmp(uint16_t); // 1NNN
+        void setVX(uint8_t x, uint8_t nn); // 6XNN
+        void addVX(uint8_t x, uint8_t nn); // 7XNN
+        void setI(uint8_t); // ANNN
+        void draw(SDL_Renderer *renderer, uint8_t x, uint8_t y, uint8_t n); // DXYN
+        void render(SDL_Renderer *renderer);
 };
 
 static const uint8_t font[] = {
