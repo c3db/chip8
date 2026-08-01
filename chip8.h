@@ -15,6 +15,7 @@
 #define FONT_START_ADDRESS 0x50
 #define ROWS 64
 #define COLLUMNS 32
+#define PROGRAM_ADDRESS 0x200
 
 class Chip8 {
     public:
@@ -24,7 +25,7 @@ class Chip8 {
         uint8_t delay_timer;
         uint8_t sound_timer;
         std::array<uint8_t, REGISTER_COUNT> registers;
-        std::vector<uint8_t> memory = std::vector<uint8_t>(MEMORY_SIZE);
+        std::array<uint8_t, MEMORY_SIZE> memory;
         uint8_t display[ROWS][COLLUMNS];
     public:
         Chip8();
@@ -34,11 +35,14 @@ class Chip8 {
         void setVX(uint8_t x, uint8_t nn); // 6XNN
         void addVX(uint8_t x, uint8_t nn); // 7XNN
         void setI(uint8_t); // ANNN
+
         void draw(SDL_Renderer *renderer, uint8_t x, uint8_t y, uint8_t n); // DXYN
         void render(SDL_Renderer *renderer);
+        void addProgram(std::ifstream *rom);
+        std::string getInstruction();
 };
 
-static const uint8_t font[] = {
+static const std::array<uint8_t, 80> font = {
 0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 0x20, 0x60, 0x20, 0x20, 0x70, // 1
 0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2

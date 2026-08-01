@@ -3,9 +3,13 @@
 #include <bitset>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <fstream>
+#include <iomanip>
+#include <ios>
 #include <iostream>
+#include <sstream>
 #include <string>
-#include <vector>
 
 #define PIXEL_SIZE 20
 #define REGISTER_ERROR 1
@@ -16,7 +20,9 @@ Chip8::Chip8() {
     delay_timer = 0;
     sound_timer = 0;
     registers.fill(0);
-    memory.insert(memory.begin(), font, font + 80);
+    for (int i = 0; i < font.size(); i++) {
+        memory[i] = font[i];
+    }
 };
 
 void Chip8::cls(SDL_Renderer *renderer) {
@@ -38,7 +44,7 @@ void Chip8::addVX(uint8_t x, uint8_t nn) {
      if (x > 15) {
         throw REGISTER_ERROR;
      }
-     registers.at(x) += nn;
+     registers[x] += nn;
 }
 
 void Chip8::setI(uint8_t nnn) {
@@ -83,6 +89,8 @@ void Chip8::draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n
         uint8_t sprite = memory[this->i + i];
         std::string sprite_bits = integer_to_bit_string(sprite);
         size_t sprite_bits_length = sprite_bits.length();
+        if (y > COLLUMNS)
+            break;
         for (size_t j = 0; j < sprite_bits_length; j++) {
             if (x > ROWS)
                 break;
@@ -99,10 +107,32 @@ void Chip8::draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n
             x++;
         }
         x = initial_x;
-        if (y > COLLUMNS)
-            break;
         y++;
     }
 
     render(renderer);
+}
+
+void Chip8::addProgram(std::ifstream *rom) {
+    char instruction;
+    uint16_t iterator = PROGRAM_ADDRESS;
+    while ((*rom).read(&instruction, sizeof(char))) {
+        uint16_t h = static_cast<unsigned char>(instruction);
+        memory.at(iterator) = (uint8_t)h;
+        iterator++;
+    }
+}
+
+std::string Chip8::getInstruction() {
+    if (pc >= MEMORY_SIZE)
+        return "";
+    uint8_t first_byte = memory[pc];
+    uint8_t second_byte = memory[pc + 1];
+    pc += 2;
+
+    std::stringstream stream;
+    stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(first_byte);
+    stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(second_byte);
+
+    return stream.str();
 }
