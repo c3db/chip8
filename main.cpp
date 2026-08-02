@@ -1,6 +1,8 @@
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_rect.h>
+#include <cstdint>
 #include <fstream>
+#include <ios>
 #include <iostream>
 #define SDL_MAIN_USE_CALLBACKS 1
 
@@ -56,16 +58,46 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     return SDL_APP_CONTINUE;
 }
 
+void instruction0(Instruction instruction) {
+    switch (instruction.first_byte) {
+        case 0x00:
+            switch (instruction.second_byte) {
+                case 0xe0:
+                    chip->cls(renderer);
+                    break;
+                default:
+                    return;
+            }
+            break;
+        default:
+            return;
+    }
+}
+
 SDL_AppResult SDL_AppIterate(void* appstate) {
-    SDL_RenderPresent(renderer);
-
-//    for (;;) {
-//        std::string instruction = chip->getInstruction();
-//        switch (instruction[0]) {
-//
-//        }
-//    }
-
+    Instruction instruction = chip->getInstruction();
+    switch (instruction.first_byte >> 4) {
+        case 0x0:
+            instruction0(instruction);
+            break;
+        case 0x1:
+            chip->jmp((instruction.first_byte & 0x0f) * 16 + instruction.second_byte);
+            break;
+        case 0x6:
+            chip->setVX(instruction.first_byte & 0x0f, instruction.second_byte);
+            break;
+        case 0x7:
+            chip->addVX(instruction.first_byte & 0x0f, instruction.second_byte);
+            break;
+        case 0xa:
+            chip->setI(((instruction.first_byte & 0x0f) << 8) + instruction.second_byte);
+            break;
+        case 0xd:
+            chip->draw(renderer, instruction.first_byte & 0x0f, instruction.second_byte >> 4, instruction.second_byte & 0x0f);
+            break;
+        default:
+            break;
+    }
     return SDL_APP_CONTINUE;
 }
 

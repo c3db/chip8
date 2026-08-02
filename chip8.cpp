@@ -5,14 +5,12 @@
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
-#include <iomanip>
-#include <ios>
-#include <iostream>
-#include <sstream>
 #include <string>
 
 #define PIXEL_SIZE 20
+
 #define REGISTER_ERROR 1
+#define MEMORY_ERROR 2
 
 Chip8::Chip8() {
     pc = START_ADDRESS;
@@ -20,8 +18,8 @@ Chip8::Chip8() {
     delay_timer = 0;
     sound_timer = 0;
     registers.fill(0);
-    for (int i = 0; i < font.size(); i++) {
-        memory[i] = font[i];
+    for (int j = 0; j < font.size(); j++) {
+        memory[j] = font[j];
     }
 };
 
@@ -41,13 +39,13 @@ void Chip8::setVX(uint8_t x, uint8_t nn) {
 }
 
 void Chip8::addVX(uint8_t x, uint8_t nn) {
-     if (x > 15) {
+    if (x > 15) {
         throw REGISTER_ERROR;
-     }
-     registers[x] += nn;
+    }
+    registers[x] += nn;
 }
 
-void Chip8::setI(uint8_t nnn) {
+void Chip8::setI(uint16_t nnn) {
     i = nnn;
 }
 
@@ -56,22 +54,21 @@ std::string integer_to_bit_string(uint8_t n) {
 }
 
 void Chip8::render(SDL_Renderer *renderer) {
-    SDL_RenderClear(renderer);
     SDL_FRect rect[ROWS][COLLUMNS];
     for (uint8_t x = 0; x < ROWS; x++) {
         for (uint8_t y = 0; y < COLLUMNS; y++) {
-                rect[x][y].w = PIXEL_SIZE;
-                rect[x][y].h = PIXEL_SIZE;
-                rect[x][y].x = x * PIXEL_SIZE;
-                rect[x][y].y = y * PIXEL_SIZE;
-                if (display[x][y] == 1) {
-                    SDL_SetRenderDrawColor(renderer, 255, 0, 20, SDL_ALPHA_OPAQUE);
-                }else
-                    SDL_SetRenderDrawColor(renderer, 0, 0, 20, SDL_ALPHA_OPAQUE);
-
+            rect[x][y].w = PIXEL_SIZE;
+            rect[x][y].h = PIXEL_SIZE;
+            rect[x][y].x = x * PIXEL_SIZE;
+            rect[x][y].y = y * PIXEL_SIZE;
+            SDL_SetRenderDrawColor(renderer, 0, 0, 20, SDL_ALPHA_OPAQUE);
+            if (display[x][y] == 1) {
+                SDL_SetRenderDrawColor(renderer, 255, 0, 20, SDL_ALPHA_OPAQUE);
+            }
             SDL_RenderFillRect(renderer, &rect[x][y]);
         }
     }
+    SDL_RenderPresent(renderer);
 }
 
 void Chip8::draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n) {
@@ -81,8 +78,8 @@ void Chip8::draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n
     uint8_t x = registers.at(reg_x);
     uint8_t y = registers.at(reg_y);
     x %= ROWS;
-    uint8_t initial_x = x;
     y %= COLLUMNS;
+    uint8_t initial_x = x;
     uint8_t sprite = memory.at(i);
     registers[15] = 0;
     for (int i = 0; i < n; i++) {
@@ -109,30 +106,24 @@ void Chip8::draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n
         x = initial_x;
         y++;
     }
-
     render(renderer);
 }
 
 void Chip8::addProgram(std::ifstream *rom) {
-    char instruction;
+    uint8_t instruction;
     uint16_t iterator = PROGRAM_ADDRESS;
-    while ((*rom).read(&instruction, sizeof(char))) {
-        uint16_t h = static_cast<unsigned char>(instruction);
-        memory.at(iterator) = (uint8_t)h;
+    while ((*rom).read(reinterpret_cast<char*>(&instruction), sizeof(char))) {
+        memory.at(iterator) = instruction;
         iterator++;
     }
 }
 
-std::string Chip8::getInstruction() {
+Instruction Chip8::getInstruction() {
     if (pc >= MEMORY_SIZE)
-        return "";
-    uint8_t first_byte = memory[pc];
-    uint8_t second_byte = memory[pc + 1];
+        throw MEMORY_ERROR;
+    Instruction instruction;
+    instruction.first_byte = memory[pc];
+    instruction.second_byte = memory[pc + 1];
     pc += 2;
-
-    std::stringstream stream;
-    stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(first_byte);
-    stream << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(second_byte);
-
-    return stream.str();
+    return instruction;
 }

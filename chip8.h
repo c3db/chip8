@@ -12,10 +12,15 @@
 #define REGISTER_COUNT 16
 #define DELAY_HZ 60
 #define START_ADDRESS 0x0200
-#define FONT_START_ADDRESS 0x50
 #define ROWS 64
 #define COLLUMNS 32
 #define PROGRAM_ADDRESS 0x200
+#define FONT_ADDRESS 0x050
+
+struct Instruction {
+    uint8_t first_byte;
+    uint8_t second_byte;
+};
 
 class Chip8 {
     public:
@@ -34,12 +39,12 @@ class Chip8 {
         void jmp(uint16_t); // 1NNN
         void setVX(uint8_t x, uint8_t nn); // 6XNN
         void addVX(uint8_t x, uint8_t nn); // 7XNN
-        void setI(uint8_t); // ANNN
+        void setI(uint16_t); // ANNN
 
         void draw(SDL_Renderer *renderer, uint8_t x, uint8_t y, uint8_t n); // DXYN
         void render(SDL_Renderer *renderer);
         void addProgram(std::ifstream *rom);
-        std::string getInstruction();
+        Instruction getInstruction();
 };
 
 static const std::array<uint8_t, 80> font = {
