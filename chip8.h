@@ -1,5 +1,6 @@
 #pragma once
 
+#include "instruction.h"
 #include <SDL3/SDL_render.h>
 #include <array>
 #include <cstdint>
@@ -17,11 +18,6 @@
 #define PROGRAM_ADDRESS 0x200
 #define FONT_ADDRESS 0x050
 
-struct Instruction {
-    uint8_t first_byte;
-    uint8_t second_byte;
-};
-
 class Chip8 {
     public:
         uint16_t pc;
@@ -37,10 +33,24 @@ class Chip8 {
 
         void cls(SDL_Renderer *); // 00E0
         void jmp(uint16_t); // 1NNN
-        void setVX(uint8_t x, uint8_t nn); // 6XNN
-        void addVX(uint8_t x, uint8_t nn); // 7XNN
-        void setI(uint16_t); // ANNN
-        void draw(SDL_Renderer *renderer, uint8_t x, uint8_t y, uint8_t n); // DXYN
+        void set_VX(uint8_t x, uint8_t nn); // 6XNN
+        void add_VX(uint8_t x, uint8_t nn); // 7XNN
+        void set_I(uint16_t address); // ANNN
+        void draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n); // DXYN
+        void call_subroutine(uint16_t address); //2NNN
+        void return_from_subroutine(); // 00EE
+        void skip_if_equal(uint8_t reg_x, uint8_t nn); // 3XNN
+        void skip_if_not_equal(uint8_t reg_x, uint8_t nn); // 4XNN
+        void skip_if_reg_equal(uint8_t reg_x, uint8_t reg_y); // 5XY0
+        void skip_if_reg_not_equal(uint8_t reg_x, uint8_t reg_y); // 9XY0
+        void set_VX_to_VY(uint8_t reg_x, uint8_t reg_y); // 8XY0
+        void binary_or(uint8_t reg_x, uint8_t reg_y); // 8XY1
+        void binary_and(uint8_t reg_x, uint8_t reg_y); // 8XY2
+        void logical_xor(uint8_t reg_x, uint8_t reg_y); // 8XY3
+        void add_VX_carry(uint8_t reg_x, uint8_t reg_y); // 8XY4
+        void subtract_VX_VY(uint8_t reg_x, uint8_t reg_y); //8XY5
+
+        void subtract_VY_VX(uint8_t reg_x, uint8_t reg_y); //8XY7
 
         void render(SDL_Renderer *renderer);
         void addProgram(std::ifstream *rom);

@@ -1,3 +1,4 @@
+#include "instruction.h"
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_stdinc.h>
@@ -67,6 +68,8 @@ void instruction0(Instruction instruction) {
                 case 0xe0:
                     chip->cls(renderer);
                     break;
+                case 0xee:
+
                 default:
                     return;
             }
@@ -81,24 +84,24 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
     static uint64_t delay_last_time = SDL_GetPerformanceCounter();
     last_time = SDL_GetPerformanceCounter();
     Instruction instruction = chip->getInstruction();
-    switch (instruction.first_byte >> 4) {
+    switch (instruction.first_nible()) {
         case 0x0:
             instruction0(instruction);
             break;
         case 0x1:
-            chip->jmp(((instruction.first_byte & 0x0f) << 8) + instruction.second_byte);
+            chip->jmp(instruction.get_address(3));
             break;
         case 0x6:
-            chip->setVX(instruction.first_byte & 0x0f, instruction.second_byte);
+            chip->set_VX(instruction.second_nible(), instruction.second_byte);
             break;
         case 0x7:
-            chip->addVX(instruction.first_byte & 0x0f, instruction.second_byte);
+            chip->add_VX(instruction.second_nible(), instruction.second_byte);
             break;
         case 0xa:
-            chip->setI(((instruction.first_byte & 0x0f) << 8) + instruction.second_byte);
+            chip->set_I(instruction.get_address(3));
             break;
         case 0xd:
-            chip->draw(renderer, instruction.first_byte & 0x0f, instruction.second_byte >> 4, instruction.second_byte & 0x0f);
+            chip->draw(renderer, instruction.second_nible(), instruction.third_nible(), instruction.forth_nible());
             break;
         default:
             break;

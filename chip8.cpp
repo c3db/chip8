@@ -1,11 +1,11 @@
 #include "chip8.h"
+#include "instruction.h"
 #include <SDL3/SDL_render.h>
 #include <bitset>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
-#include <iostream>
 #include <string>
 
 #define PIXEL_SIZE 20
@@ -29,24 +29,24 @@ void Chip8::cls(SDL_Renderer *renderer) {
 }
 
 void Chip8::jmp(uint16_t address) {
-    this->pc = address;
+    pc = address;
 }
 
-void Chip8::setVX(uint8_t x, uint8_t nn) {
+void Chip8::set_VX(uint8_t x, uint8_t nn) {
     if (x > 15) {
         throw REGISTER_ERROR;
     }
     registers[x] = nn;
 }
 
-void Chip8::addVX(uint8_t x, uint8_t nn) {
+void Chip8::add_VX(uint8_t x, uint8_t nn) {
     if (x > 15) {
         throw REGISTER_ERROR;
     }
     registers[x] += nn;
 }
 
-void Chip8::setI(uint16_t nnn) {
+void Chip8::set_I(uint16_t nnn) {
     i = nnn;
 }
 
@@ -110,6 +110,78 @@ void Chip8::draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n
     render(renderer);
 }
 
+void Chip8::call_subroutine(uint16_t address) {
+    stack.push(pc);
+    pc = address;
+}
+
+void Chip8::return_from_subroutine() {
+    pc = stack.top();
+    stack.pop();
+}
+
+void Chip8::skip_if_equal(uint8_t reg_x, uint8_t nn) {
+    if (registers[reg_x] == nn) {
+        pc += 2;
+    }
+}
+
+void Chip8::skip_if_not_equal(uint8_t reg_x, uint8_t nn) {
+    if (registers[reg_x] != nn) {
+        pc += 2;
+    }
+}
+
+void Chip8::skip_if_reg_equal(uint8_t reg_x, uint8_t reg_y) {
+    if (registers[reg_x] == registers[reg_y]) {
+        pc += 2;
+    }
+}
+
+void Chip8::skip_if_reg_not_equal(uint8_t reg_x, uint8_t reg_y) {
+    if (registers[reg_x] != registers[reg_y]) {
+        pc += 2;
+    }
+}
+
+void Chip8::set_VX_to_VY(uint8_t reg_x, uint8_t reg_y) {
+    registers[reg_x] = registers[reg_y];
+}
+
+void Chip8::binary_or(uint8_t reg_x, uint8_t reg_y) {
+    registers[reg_x] |= registers[reg_y];
+}
+
+void Chip8::binary_and(uint8_t reg_x, uint8_t reg_y) {
+    registers[reg_x] &= registers[reg_y];
+}
+
+void Chip8::logical_xor(uint8_t reg_x, uint8_t reg_y) {
+    registers[reg_x] ^= registers[reg_y];
+}
+
+void Chip8::add_VX_carry(uint8_t reg_x, uint8_t reg_y) {
+    uint16_t result = static_cast<uint16_t>(reg_x) + static_cast<uint16_t>(reg_y);
+    registers[15] = 0;
+    if (result > 255)
+        registers[15] = 1;
+    registers[reg_x] = static_cast<uint8_t>(result);
+}
+
+void Chip8::subtract_VX_VY(uint8_t reg_x, uint8_t reg_y) {
+    registers[15] = 1;
+    if (registers[reg_x] >= registers[reg_y])
+        registers[15] = 0;
+    registers[reg_x] -= registers[reg_y];
+}
+
+void Chip8::subtract_VY_VX(uint8_t reg_x, uint8_t reg_y) {
+    registers[15] = 1;
+    if (registers[reg_y] >= registers[reg_x])
+        registers[15] = 0;
+    registers[reg_x] = registers[reg_y] - registers[reg_x];
+}
+
 void Chip8::addProgram(std::ifstream *rom) {
     uint8_t instruction;
     uint16_t iterator = PROGRAM_ADDRESS;
@@ -122,9 +194,7 @@ void Chip8::addProgram(std::ifstream *rom) {
 Instruction Chip8::getInstruction() {
     if (pc >= MEMORY_SIZE)
         throw MEMORY_ERROR;
-    Instruction instruction;
-    instruction.first_byte = memory[pc];
-    instruction.second_byte = memory[pc + 1];
+    Instruction instruction(memory[pc], memory[pc + 1]);
     pc += 2;
     return instruction;
 }
