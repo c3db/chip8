@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
+#include <iostream>
 #include <string>
 
 #define PIXEL_SIZE 20
@@ -61,9 +62,9 @@ void Chip8::render(SDL_Renderer *renderer) {
             rect[x][y].h = PIXEL_SIZE;
             rect[x][y].x = x * PIXEL_SIZE;
             rect[x][y].y = y * PIXEL_SIZE;
-            SDL_SetRenderDrawColor(renderer, 0, 0, 20, SDL_ALPHA_OPAQUE);
+            SDL_SetRenderDrawColor(renderer, 120, 0, 20, SDL_ALPHA_OPAQUE);
             if (display[x][y] == 1) {
-                SDL_SetRenderDrawColor(renderer, 255, 0, 20, SDL_ALPHA_OPAQUE);
+                SDL_SetRenderDrawColor(renderer, 193, 18, 31, SDL_ALPHA_OPAQUE);
             }
             SDL_RenderFillRect(renderer, &rect[x][y]);
         }
@@ -126,4 +127,11 @@ Instruction Chip8::getInstruction() {
     instruction.second_byte = memory[pc + 1];
     pc += 2;
     return instruction;
+}
+
+void Chip8::decrementTimers() {
+    if (delay_timer > 0)
+        delay_timer--;
+    if (sound_timer > 0)
+        sound_timer--;
 }

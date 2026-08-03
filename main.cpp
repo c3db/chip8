@@ -1,5 +1,7 @@
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_stdinc.h>
+#include <SDL3/SDL_timer.h>
 #include <cstdint>
 #include <fstream>
 #include <ios>
@@ -24,12 +26,12 @@ static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static Chip8 *chip = NULL;
 static std::ifstream rom;
+constexpr double ms_per_second = 1000.0 / 700.0;
+constexpr double frames_per_second = 1000.0 / 60.0;
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     if (argc < 2)
         throw FILE_NOT_RECEIVED;
-
-    SDL_SetHint("SDL_HINT_MAIN_CALLBACK_RATE", "60");
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("Coudn't initialize sdl: %s", SDL_GetError());
@@ -75,13 +77,16 @@ void instruction0(Instruction instruction) {
 }
 
 SDL_AppResult SDL_AppIterate(void* appstate) {
+    uint64_t last_time, current_time;
+    static uint64_t delay_last_time = SDL_GetPerformanceCounter();
+    last_time = SDL_GetPerformanceCounter();
     Instruction instruction = chip->getInstruction();
     switch (instruction.first_byte >> 4) {
         case 0x0:
             instruction0(instruction);
             break;
         case 0x1:
-            chip->jmp((instruction.first_byte & 0x0f) * 16 + instruction.second_byte);
+            chip->jmp(((instruction.first_byte & 0x0f) << 8) + instruction.second_byte);
             break;
         case 0x6:
             chip->setVX(instruction.first_byte & 0x0f, instruction.second_byte);
@@ -98,6 +103,15 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
         default:
             break;
     }
+    current_time = SDL_GetPerformanceCounter();
+    double delay_frame_ticks = (double)((current_time - delay_last_time) * 1000) / SDL_GetPerformanceFrequency();
+    if (delay_frame_ticks >= frames_per_second) {
+        chip->decrementTimers();
+        delay_last_time = current_time;
+    }
+    double frame_ticks = (double)((current_time - last_time) * 1000) / SDL_GetPerformanceFrequency();
+    if (frame_ticks < ms_per_second)
+        SDL_Delay((Uint64)(ms_per_second - frame_ticks));
     return SDL_APP_CONTINUE;
 }
 

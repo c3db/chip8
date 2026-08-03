@@ -40,11 +40,12 @@ class Chip8 {
         void setVX(uint8_t x, uint8_t nn); // 6XNN
         void addVX(uint8_t x, uint8_t nn); // 7XNN
         void setI(uint16_t); // ANNN
-
         void draw(SDL_Renderer *renderer, uint8_t x, uint8_t y, uint8_t n); // DXYN
+
         void render(SDL_Renderer *renderer);
         void addProgram(std::ifstream *rom);
         Instruction getInstruction();
+        void decrementTimers();
 };
 
 static const std::array<uint8_t, 80> font = {
