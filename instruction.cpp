@@ -8,19 +8,19 @@ Instruction::Instruction(uint8_t first_byte, uint8_t second_byte) {
     this->second_byte = second_byte;
 }
 
-uint8_t Instruction::first_nible() {
+uint8_t Instruction::first_nibble() {
     return first_byte >> 4;
 }
 
-uint8_t Instruction::second_nible() {
+uint8_t Instruction::second_nibble() {
     return first_byte & 0x0f;
 }
 
-uint8_t Instruction::third_nible() {
+uint8_t Instruction::third_nibble() {
     return second_byte >> 4;
 }
 
-uint8_t Instruction::forth_nible() {
+uint8_t Instruction::forth_nibble() {
     return second_byte & 0x0f;
 }
 

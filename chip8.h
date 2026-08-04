@@ -32,29 +32,37 @@ class Chip8 {
         Chip8();
 
         void cls(SDL_Renderer *); // 00E0
-        void jmp(uint16_t); // 1NNN
-        void set_VX(uint8_t x, uint8_t nn); // 6XNN
-        void add_VX(uint8_t x, uint8_t nn); // 7XNN
-        void set_I(uint16_t address); // ANNN
-        void draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n); // DXYN
-        void call_subroutine(uint16_t address); //2NNN
         void return_from_subroutine(); // 00EE
+        void jmp(uint16_t); // 1NNN
+        void call_subroutine(uint16_t address); //2NNN
         void skip_if_equal(uint8_t reg_x, uint8_t nn); // 3XNN
         void skip_if_not_equal(uint8_t reg_x, uint8_t nn); // 4XNN
         void skip_if_reg_equal(uint8_t reg_x, uint8_t reg_y); // 5XY0
-        void skip_if_reg_not_equal(uint8_t reg_x, uint8_t reg_y); // 9XY0
+        void set_VX(uint8_t x, uint8_t nn); // 6XNN
+        void add_VX(uint8_t x, uint8_t nn); // 7XNN
         void set_VX_to_VY(uint8_t reg_x, uint8_t reg_y); // 8XY0
         void binary_or(uint8_t reg_x, uint8_t reg_y); // 8XY1
         void binary_and(uint8_t reg_x, uint8_t reg_y); // 8XY2
         void logical_xor(uint8_t reg_x, uint8_t reg_y); // 8XY3
         void add_VX_carry(uint8_t reg_x, uint8_t reg_y); // 8XY4
         void subtract_VX_VY(uint8_t reg_x, uint8_t reg_y); //8XY5
-
+        // AMBIGOUS INSTRUCTION
+        void shift_right(uint8_t reg_x); // 8XY6
         void subtract_VY_VX(uint8_t reg_x, uint8_t reg_y); //8XY7
+        // AMBIGOUS INSTRUCTION
+        void shift_left(uint8_t reg_x); // 8XYE
+        void skip_if_reg_not_equal(uint8_t reg_x, uint8_t reg_y); // 9XY0
+        void set_I(uint16_t address); // ANNN
+        void draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n); // DXYN
+        void add_I(uint8_t reg_x); //FX1E
+        void decimal_convertion(uint8_t reg_x); // FX33
+        // TWO AMBIGOUS INSTRUCTIONS
+        void store(uint8_t reg_x); // FX55
+        void load(uint8_t reg_x); // FX65
 
         void render(SDL_Renderer *renderer);
         void addProgram(std::ifstream *rom);
-        Instruction getInstruction();
+        Instruction get_instruction();
         void decrementTimers();
 };
 

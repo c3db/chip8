@@ -69,13 +69,66 @@ void instruction0(Instruction instruction) {
                     chip->cls(renderer);
                     break;
                 case 0xee:
-
+                    chip->return_from_subroutine();
                 default:
                     return;
             }
             break;
         default:
-            return;
+            break;
+    }
+}
+
+void instruction8(Instruction instruction) {
+    switch (instruction.forth_nibble()) {
+        case 0x0:
+            chip->set_VX_to_VY(instruction.second_nibble(), instruction.third_nibble());
+            break;
+        case 0x1:
+            chip->binary_or(instruction.second_nibble(), instruction.third_nibble());
+            break;
+        case 0x2:
+            chip->binary_and(instruction.second_nibble(), instruction.third_nibble());
+            break;
+        case 0x3:
+            chip->logical_xor(instruction.second_nibble(), instruction.third_nibble());
+            break;
+        case 0x4:
+            chip->add_VX_carry(instruction.second_nibble(), instruction.third_nibble());
+            break;
+        case 0x5:
+            chip->subtract_VX_VY(instruction.second_nibble(), instruction.third_nibble());
+            break;
+        case 0x6:
+            chip->shift_right(instruction.second_nibble());
+            break;
+         case 0x7:
+            chip->subtract_VY_VX(instruction.second_nibble(), instruction.third_nibble());
+            break;
+        case 0xE:
+            chip->shift_left(instruction.second_nibble());
+            break;
+        default:
+            break;
+    }
+}
+
+void instructionF(Instruction instruction) {
+    switch (instruction.second_byte) {
+        case 0x1E:
+            chip->add_I(instruction.second_nibble());
+            break;
+        case 0x33:
+            chip->decimal_convertion(instruction.second_nibble());
+            break;
+        case 0x55:
+            chip->store(instruction.second_nibble());
+            break;
+        case 0x65:
+            chip->load(instruction.second_nibble());
+            break;
+        default:
+            break;
     }
 }
 
@@ -83,25 +136,46 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
     uint64_t last_time, current_time;
     static uint64_t delay_last_time = SDL_GetPerformanceCounter();
     last_time = SDL_GetPerformanceCounter();
-    Instruction instruction = chip->getInstruction();
-    switch (instruction.first_nible()) {
+    Instruction instruction = chip->get_instruction();
+    switch (instruction.first_nibble()) {
         case 0x0:
             instruction0(instruction);
             break;
         case 0x1:
             chip->jmp(instruction.get_address(3));
             break;
+        case 0x2:
+            chip->call_subroutine(instruction.get_address(3));
+            break;
+        case 0x3:
+            chip->skip_if_equal(instruction.second_nibble(), instruction.get_address(2));
+            break;
+        case 0x4:
+            chip->skip_if_not_equal(instruction.second_nibble(), instruction.get_address(2));
+            break;
+        case 0x5:
+            chip->skip_if_reg_equal(instruction.second_nibble(), instruction.third_nibble());
+            break;
         case 0x6:
-            chip->set_VX(instruction.second_nible(), instruction.second_byte);
+            chip->set_VX(instruction.second_nibble(), instruction.second_byte);
             break;
         case 0x7:
-            chip->add_VX(instruction.second_nible(), instruction.second_byte);
+            chip->add_VX(instruction.second_nibble(), instruction.second_byte);
+            break;
+        case 0x8:
+            instruction8(instruction);
+            break;
+        case 0x9:
+            chip->skip_if_reg_not_equal(instruction.second_nibble(), instruction.third_nibble());
             break;
         case 0xa:
             chip->set_I(instruction.get_address(3));
             break;
         case 0xd:
-            chip->draw(renderer, instruction.second_nible(), instruction.third_nible(), instruction.forth_nible());
+            chip->draw(renderer, instruction.second_nibble(), instruction.third_nibble(), instruction.forth_nibble());
+            break;
+        case 0xf:
+            instructionF(instruction);
             break;
         default:
             break;

@@ -2,9 +2,7 @@
 #include "instruction.h"
 #include <SDL3/SDL_render.h>
 #include <bitset>
-#include <cstddef>
 #include <cstdint>
-#include <cstdio>
 #include <fstream>
 #include <string>
 
@@ -55,6 +53,7 @@ std::string integer_to_bit_string(uint8_t n) {
 }
 
 void Chip8::render(SDL_Renderer *renderer) {
+//    SDL_RenderClear(renderer);
     SDL_FRect rect[ROWS][COLLUMNS];
     for (uint8_t x = 0; x < ROWS; x++) {
         for (uint8_t y = 0; y < COLLUMNS; y++) {
@@ -76,32 +75,19 @@ void Chip8::draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n
     if (reg_x > 15 || reg_y > 15) {
         throw REGISTER_ERROR;
     }
-    uint8_t x = registers.at(reg_x);
-    uint8_t y = registers.at(reg_y);
+    uint8_t x = registers[reg_x];
+    uint8_t y = registers[reg_y];
     x %= ROWS;
     y %= COLLUMNS;
     uint8_t initial_x = x;
-    uint8_t sprite = memory.at(i);
     registers[15] = 0;
     for (int i = 0; i < n; i++) {
         uint8_t sprite = memory[this->i + i];
-        std::string sprite_bits = integer_to_bit_string(sprite);
-        size_t sprite_bits_length = sprite_bits.length();
-        if (y > COLLUMNS)
-            break;
-        for (size_t j = 0; j < sprite_bits_length; j++) {
-            if (x > ROWS)
-                break;
-            else if (sprite_bits[j] == '1') {
-                if (display[x][y] != 0) {
-                 display[x][y] = 0;
-                 registers[15] = 1;
-                } else {
-                    display[x][y] = 1;
-                }
-            } else {
-                display[x][y] = 0;
-            }
+        for (int j = 0; j < 8; j++) {
+            uint8_t sprite_bit = (sprite >> (7 - j)) & 0x1;
+            if(display[x][y] && sprite_bit)
+                registers[15] = 1;
+            display[x][y] ^= sprite_bit;
             x++;
         }
         x = initial_x;
@@ -161,7 +147,7 @@ void Chip8::logical_xor(uint8_t reg_x, uint8_t reg_y) {
 }
 
 void Chip8::add_VX_carry(uint8_t reg_x, uint8_t reg_y) {
-    uint16_t result = static_cast<uint16_t>(reg_x) + static_cast<uint16_t>(reg_y);
+    uint16_t result = registers[reg_x] + registers[reg_y];
     registers[15] = 0;
     if (result > 255)
         registers[15] = 1;
@@ -175,11 +161,53 @@ void Chip8::subtract_VX_VY(uint8_t reg_x, uint8_t reg_y) {
     registers[reg_x] -= registers[reg_y];
 }
 
+void Chip8::shift_right(uint8_t reg_x) {
+    registers[15] = 0;
+    if (registers[reg_x] & 0x1)
+        registers[15] = 1;
+    registers[reg_x] >>= 1;
+}
+
+void Chip8::shift_left(uint8_t reg_x) {
+    registers[15] = 0;
+    if (registers[reg_x] & 0x1)
+        registers[15] = 1;
+    registers[reg_x] <<= 1;
+}
+
 void Chip8::subtract_VY_VX(uint8_t reg_x, uint8_t reg_y) {
     registers[15] = 1;
     if (registers[reg_y] >= registers[reg_x])
         registers[15] = 0;
     registers[reg_x] = registers[reg_y] - registers[reg_x];
+}
+
+void Chip8::store(uint8_t reg_x) {
+    for (int i = 0; i <= reg_x; i++) {
+        memory[this->i + i] = registers[i];
+    }
+}
+
+void Chip8::decimal_convertion(uint8_t reg_x) {
+    uint8_t x = registers[reg_x];
+    for (int i = 2; i >= 0; i--) {
+        uint8_t value = x % 10;
+        memory[this->i + i] = value;
+        x = (x - value) / 10;
+    }
+}
+
+void Chip8::add_I(uint8_t reg_x) {
+    uint8_t x = registers[reg_x];
+    i += x;
+    if (i > MEMORY_SIZE)
+        registers[15] = 1;
+}
+
+void Chip8::load(uint8_t reg_x) {
+    for (int i = 0; i <= reg_x; i++) {
+        registers[i] = memory[this->i + i];
+    }
 }
 
 void Chip8::addProgram(std::ifstream *rom) {
@@ -191,8 +219,8 @@ void Chip8::addProgram(std::ifstream *rom) {
     }
 }
 
-Instruction Chip8::getInstruction() {
-    if (pc >= MEMORY_SIZE)
+Instruction Chip8::get_instruction() {
+    if (pc > MEMORY_SIZE)
         throw MEMORY_ERROR;
     Instruction instruction(memory[pc], memory[pc + 1]);
     pc += 2;
