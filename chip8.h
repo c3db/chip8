@@ -53,11 +53,21 @@ class Chip8 {
         void shift_left(uint8_t reg_x); // 8XYE
         void skip_if_reg_not_equal(uint8_t reg_x, uint8_t reg_y); // 9XY0
         void set_I(uint16_t address); // ANNN
+        void jump(uint16_t addresss); // BNNN
+        void set_VX_random(uint8_t reg_x, uint8_t nn); // CXNN
         void draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n); // DXYN
+        void is_pressed(uint8_t reg_x); // EX9E
+        void is_not_pressed(uint8_t reg_x); // EXA1
+        void set_VX_to_delay(uint8_t reg_x); // FX07
+        void set_VX_key_pressed(uint8_t reg_x); // FX0A
+        void set_delay_to_VX(uint8_t reg_x); // FX15
+        void set_sound_timer_to_VX(uint8_t reg_x); // FX18
         void add_I(uint8_t reg_x); //FX1E
+        void set_I_to_sprite(uint8_t reg_x); //FX29
         void decimal_convertion(uint8_t reg_x); // FX33
-        // TWO AMBIGOUS INSTRUCTIONS
+        // AMBIGOUS INSTRUCTION
         void store(uint8_t reg_x); // FX55
+        // AMBIGOUS INSTRUCTION
         void load(uint8_t reg_x); // FX65
 
         void render(SDL_Renderer *renderer);

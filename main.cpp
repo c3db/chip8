@@ -5,6 +5,7 @@
 #include <SDL3/SDL_timer.h>
 #include <cstdint>
 #include <fstream>
+#include <iomanip>
 #include <ios>
 #include <iostream>
 #define SDL_MAIN_USE_CALLBACKS 1
@@ -113,10 +114,38 @@ void instruction8(Instruction instruction) {
     }
 }
 
+void instructionE(Instruction instruction) {
+    switch (instruction.third_nibble()) {
+        case 0x9:
+            chip->is_pressed(instruction.second_nibble());
+            break;
+        case 0xA:
+            chip->is_not_pressed(instruction.second_nibble());
+            break;
+        default:
+            break;
+    }
+}
+
 void instructionF(Instruction instruction) {
     switch (instruction.second_byte) {
+        case 0x07:
+            chip->set_VX_to_delay(instruction.second_nibble());
+            break;
+        case 0x0A:
+            chip->set_VX_key_pressed(instruction.second_nibble());
+            break;
+        case 0x15:
+            chip->set_delay_to_VX(instruction.second_nibble());
+            break;
+        case 0x18:
+            chip->set_sound_timer_to_VX(instruction.second_nibble());
+            break;
         case 0x1E:
             chip->add_I(instruction.second_nibble());
+            break;
+        case 0x29:
+            chip->set_I_to_sprite(instruction.second_nibble());
             break;
         case 0x33:
             chip->decimal_convertion(instruction.second_nibble());
@@ -171,8 +200,17 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
         case 0xa:
             chip->set_I(instruction.get_address(3));
             break;
+        case 0xb:
+            chip->jump(instruction.get_address(3));
+            break;
+        case 0xc:
+            chip->set_VX_random(instruction.second_nibble(), instruction.get_address(2));
+            break;
         case 0xd:
             chip->draw(renderer, instruction.second_nibble(), instruction.third_nibble(), instruction.forth_nibble());
+            break;
+        case 0xe:
+            instructionE(instruction);
             break;
         case 0xf:
             instructionF(instruction);
