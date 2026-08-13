@@ -1,4 +1,6 @@
 #include "instruction.h"
+#include <SDL3/SDL_audio.h>
+#include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_stdinc.h>
@@ -30,12 +32,32 @@ static Chip8 *chip = NULL;
 static std::ifstream rom;
 constexpr double ms_per_second = 1000.0 / 700.0;
 constexpr double frames_per_second = 1000.0 / 60.0;
+static SDL_AudioStream *stream = NULL;
+static int current_sine_sample = 0;
+
+static void SDLCALL FeedAudioStream(void *userdata, SDL_AudioStream *astream, int additional_amount, int total_amount) {
+    additional_amount /= sizeof(float);
+    while (additional_amount > 0) {
+        float samples[128];
+        const int total = SDL_min(additional_amount, SDL_arraysize(samples));
+        for (int i = 0; i < total; i++) {
+            const int freq = 440;
+            const float phase = current_sine_sample * freq / 8000.0f;
+            current_sine_sample++;
+        }
+
+        current_sine_sample %= 8000;
+        SDL_PutAudioStreamData(astream, samples, total * sizeof(float));
+        additional_amount -= total;
+    }
+}
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     if (argc < 2)
         throw FILE_NOT_RECEIVED;
+    SDL_AudioSpec spec;
 
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         SDL_Log("Coudn't initialize sdl: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
@@ -50,7 +72,20 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     SDL_SetRenderLogicalPresentation(renderer, WIDTH, HEIGHT, SDL_LOGICAL_PRESENTATION_LETTERBOX);
     chip = new Chip8();
     rom.open(argv[1], std::ios::binary);
+    if (!rom) {
+        SDL_Log("Coudn't load file.");
+        return SDL_APP_FAILURE;
+    }
+    spec.channels = 1;
+    spec.format = SDL_AUDIO_F32;
+    spec.freq = 8000;
+    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, FeedAudioStream, NULL);
+    if (!stream) {
+        SDL_Log("Couldn't create audio stream: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
     chip->addProgram(&rom);
+
 
     return SDL_APP_CONTINUE;
 }
@@ -161,11 +196,74 @@ void instructionF(Instruction instruction) {
     }
 }
 
+#ifdef _DEBUG
+void print_debug(Instruction instruction) {
+    std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(instruction.first_byte);
+    std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(instruction.second_byte) << '\n';
+//     switch (instruction.first_nibble()) {
+//        case 0x0:
+//            instruction0(instruction);
+//            break;
+//        case 0x1:
+//            chip->jmp(instruction.get_address(3));
+//            break;
+//        case 0x2:
+//            chip->call_subroutine(instruction.get_address(3));
+//            break;
+//        case 0x3:
+//            chip->skip_if_equal(instruction.second_nibble(), instruction.get_address(2));
+//            break;
+//        case 0x4:
+//            chip->skip_if_not_equal(instruction.second_nibble(), instruction.get_address(2));
+//            break;
+//        case 0x5:
+//            chip->skip_if_reg_equal(instruction.second_nibble(), instruction.third_nibble());
+//            break;
+//        case 0x6:
+//            chip->set_VX(instruction.second_nibble(), instruction.second_byte);
+//            break;
+//        case 0x7:
+//            chip->add_VX(instruction.second_nibble(), instruction.second_byte);
+//            break;
+//        case 0x8:
+//            instruction8(instruction);
+//            break;
+//        case 0x9:
+//            chip->skip_if_reg_not_equal(instruction.second_nibble(), instruction.third_nibble());
+//            break;
+//        case 0xa:
+//            chip->set_I(instruction.get_address(3));
+//            break;
+//        case 0xb:
+//            chip->jump(instruction.get_address(3));
+//            break;
+//        case 0xc:
+//            chip->set_VX_random(instruction.second_nibble(), instruction.get_address(2));
+//            break;
+//        case 0xd:
+//            chip->draw(renderer, instruction.second_nibble(), instruction.third_nibble(), instruction.forth_nibble());
+//            break;
+//        case 0xe:
+//            instructionE(instruction);
+//            break;
+//        case 0xf:
+//            instructionF(instruction);
+//            break;
+//        default:
+//            break;
+//    }
+}
+#endif
+
 SDL_AppResult SDL_AppIterate(void* appstate) {
+    SDL_PauseAudioStreamDevice(stream);
     uint64_t last_time, current_time;
     static uint64_t delay_last_time = SDL_GetPerformanceCounter();
     last_time = SDL_GetPerformanceCounter();
     Instruction instruction = chip->get_instruction();
+#ifdef _DEBUG
+    print_debug(instruction);
+#endif
     switch (instruction.first_nibble()) {
         case 0x0:
             instruction0(instruction);
@@ -223,6 +321,9 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
     if (delay_frame_ticks >= frames_per_second) {
         chip->decrementTimers();
         delay_last_time = current_time;
+    }
+    if (chip->sound_timer != 0) {
+        SDL_ResumeAudioStreamDevice(stream);
     }
     double frame_ticks = (double)((current_time - last_time) * 1000) / SDL_GetPerformanceFrequency();
     if (frame_ticks < ms_per_second)

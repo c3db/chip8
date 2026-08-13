@@ -10,8 +10,6 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
-#include <iostream>
-#include <iterator>
 #include <string>
 #include <sys/types.h>
 
@@ -76,7 +74,6 @@ std::string integer_to_bit_string(uint8_t n) {
 }
 
 void Chip8::render(SDL_Renderer *renderer) {
-    SDL_RenderClear(renderer);
     SDL_FRect rect[ROWS][COLLUMNS];
     for (uint8_t x = 0; x < ROWS; x++) {
         for (uint8_t y = 0; y < COLLUMNS; y++) {
@@ -250,11 +247,15 @@ void Chip8::set_VX_to_delay(uint8_t reg_x) {
 }
 
 void Chip8::set_VX_key_pressed(uint8_t reg_x) {
+    bool pressed = false;
     SDL_Event event;
-    SDL_PollEvent(&event);
-    if (event.key.type == SDL_EVENT_KEY_UP) {
-        registers[reg_x] = get_key(event.key.scancode);
-    } else
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_EVENT_KEY_UP) {
+            registers[reg_x] = get_key(event.key.scancode);
+            pressed = true;
+        }
+    }
+    if(!pressed)
         pc -= 2;
 }
 
