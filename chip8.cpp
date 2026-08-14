@@ -319,38 +319,44 @@ void Chip8::logical_xor(uint8_t reg_x, uint8_t reg_y) {
 
 void Chip8::add_VX_carry(uint8_t reg_x, uint8_t reg_y) {
     uint16_t result = registers[reg_x] + registers[reg_y];
+    registers[reg_x] = static_cast<uint8_t>(result);
     registers[15] = 0;
     if (result > 255)
         registers[15] = 1;
-    registers[reg_x] = static_cast<uint8_t>(result);
 }
 
 void Chip8::subtract_VX_VY(uint8_t reg_x, uint8_t reg_y) {
-    registers[15] = 1;
-    if (registers[reg_x] >= registers[reg_y])
-        registers[15] = 0;
-    registers[reg_x] -= registers[reg_y];
+    uint8_t x = registers[reg_x];
+    uint8_t y = registers[reg_y];
+    registers[reg_x] = x - y;
+    registers[15] = 0;
+    if (x >= y)
+        registers[15] = 1;
 }
 
 void Chip8::shift_right(uint8_t reg_x) {
-    registers[15] = 0;
-    if (registers[reg_x] & 0x1)
-        registers[15] = 1;
+    uint8_t x = registers[reg_x];
     registers[reg_x] >>= 1;
+    registers[15] = 0;
+    if (x & 0x1)
+        registers[15] = 1;
 }
 
 void Chip8::shift_left(uint8_t reg_x) {
-    registers[15] = 0;
-    if (registers[reg_x] & 0x1)
-        registers[15] = 1;
+    uint8_t x = registers[reg_x];
     registers[reg_x] <<= 1;
+    registers[15] = 0;
+    if (x & 0x8)
+        registers[15] = 1;
 }
 
 void Chip8::subtract_VY_VX(uint8_t reg_x, uint8_t reg_y) {
-    registers[15] = 1;
-    if (registers[reg_y] >= registers[reg_x])
-        registers[15] = 0;
-    registers[reg_x] = registers[reg_y] - registers[reg_x];
+    uint8_t x = registers[reg_x];
+    uint8_t y = registers[reg_y];
+    registers[reg_x] = y - x;
+    registers[15] = 0;
+    if (y >= x)
+        registers[15] = 1;
 }
 
 void Chip8::store(uint8_t reg_x) {
