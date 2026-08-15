@@ -259,7 +259,7 @@ void Chip8::set_VX_key_pressed(uint8_t reg_x) {
         pc -= 2;
     else {
         waiting_for_up_key = false;
-        key_up = NULL;
+        key_up = -1;
     }
 }
 
