@@ -10,6 +10,8 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
+#include <iostream>
+#include <ostream>
 #include <string>
 #include <sys/types.h>
 
@@ -116,7 +118,7 @@ void Chip8::draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n
     render(renderer);
 }
 
-SDL_Scancode get_scancode(uint8_t x) {
+SDL_Scancode Chip8::get_scancode(uint8_t x) {
     switch (x & 0xf) {
         case 0x1:
             return SDL_SCANCODE_1;
@@ -171,7 +173,7 @@ SDL_Scancode get_scancode(uint8_t x) {
     }
 }
 
-uint8_t get_key(SDL_Scancode scancode) {
+uint8_t Chip8::get_key(SDL_Scancode scancode) {
     switch (scancode) {
         case SDL_SCANCODE_1:
             return 0x1;
@@ -247,16 +249,18 @@ void Chip8::set_VX_to_delay(uint8_t reg_x) {
 }
 
 void Chip8::set_VX_key_pressed(uint8_t reg_x) {
+    waiting_for_up_key = true;
     bool pressed = false;
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_EVENT_KEY_UP) {
-            registers[reg_x] = get_key(event.key.scancode);
-            pressed = true;
-        }
+    if (key_up != -1) {
+        registers[reg_x] = key_up;
+        pressed = true;
     }
     if(!pressed)
         pc -= 2;
+    else {
+        waiting_for_up_key = false;
+        key_up = NULL;
+    }
 }
 
 void Chip8::set_delay_to_VX(uint8_t reg_x) {

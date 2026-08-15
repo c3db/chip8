@@ -28,6 +28,8 @@ class Chip8 {
         std::array<uint8_t, REGISTER_COUNT> registers;
         std::array<uint8_t, MEMORY_SIZE> memory;
         uint8_t display[ROWS][COLLUMNS];
+        bool waiting_for_up_key;
+        int key_up = -1;
     public:
         Chip8();
 
@@ -74,6 +76,8 @@ class Chip8 {
         void addProgram(std::ifstream *rom);
         Instruction get_instruction();
         void decrementTimers();
+        SDL_Scancode get_scancode(uint8_t x);
+        uint8_t get_key(SDL_Scancode scancode);
 };
 
 static const std::array<uint8_t, 80> font = {

@@ -1,6 +1,7 @@
 #include "instruction.h"
 #include <SDL3/SDL_audio.h>
 #include <SDL3/SDL_filesystem.h>
+#include <SDL3/SDL_oldnames.h>
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_stdinc.h>
@@ -58,7 +59,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
         throw FILE_NOT_RECEIVED;
     SDL_AudioSpec spec;
 
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS)) {
         SDL_Log("Coudn't initialize sdl: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
@@ -87,13 +88,21 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     }
     chip->addProgram(&rom);
 
-
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;
+    }
+    switch (event->type) {
+        case SDL_EVENT_QUIT:
+            return SDL_APP_SUCCESS;
+            break;
+        case SDL_EVENT_KEY_UP:
+            if(chip->waiting_for_up_key)
+                chip->key_up = chip->get_key(event->key.scancode);
+            break;
     }
     return SDL_APP_CONTINUE;
 }
@@ -211,7 +220,6 @@ void print_chip_information() {
 }
 #endif
 
-
 SDL_AppResult SDL_AppIterate(void* appstate) {
     SDL_PauseAudioStreamDevice(stream);
     uint64_t last_time, current_time;
@@ -219,7 +227,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
     last_time = SDL_GetPerformanceCounter();
     Instruction instruction = chip->get_instruction();
 #ifdef _DEBUG
-    print_instruction(instruction);
+//    print_instruction(instruction);
 #endif
     switch (instruction.first_nibble()) {
         case 0x0:
