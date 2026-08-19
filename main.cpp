@@ -24,8 +24,8 @@
 
 #define FILE_NOT_RECEIVED 1
 
-#define WIDTH ROWS * 20
-#define HEIGHT COLLUMNS * 20
+#define HEIGHT ROWS * 20
+#define WIDTH COLUMNS * 20
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
@@ -98,7 +98,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
         case SDL_EVENT_KEY_UP:
             if(chip->waiting_for_up_key)
                 chip->key_up = chip->get_key(event->key.scancode);
-            break;
     }
     return SDL_APP_CONTINUE;
 }
@@ -112,8 +111,9 @@ void instruction0(Instruction instruction) {
                     break;
                 case 0xee:
                     chip->return_from_subroutine();
+                    break;
                 default:
-                    return;
+                    break;
             }
             break;
         default:
@@ -219,12 +219,12 @@ void print_chip_information() {
 SDL_AppResult SDL_AppIterate(void* appstate) {
     SDL_PauseAudioStreamDevice(stream);
     uint64_t last_time, current_time;
-    static uint64_t delay_last_time = SDL_GetPerformanceCounter();
-    last_time = SDL_GetPerformanceCounter();
     Instruction instruction = chip->get_instruction();
 #ifdef _DEBUG
     print_instruction(instruction);
 #endif
+    static uint64_t delay_last_time = SDL_GetPerformanceCounter();
+    last_time = SDL_GetPerformanceCounter();
     switch (instruction.first_nibble()) {
         case 0x0:
             instruction0(instruction);

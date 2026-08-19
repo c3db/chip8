@@ -13,8 +13,8 @@
 #define REGISTER_COUNT 16
 #define DELAY_HZ 60
 #define START_ADDRESS 0x0200
-#define ROWS 64
-#define COLLUMNS 32
+#define ROWS 32
+#define COLUMNS 64
 #define PROGRAM_ADDRESS 0x200
 #define FONT_ADDRESS 0x050
 
@@ -27,9 +27,9 @@ class Chip8 {
         uint8_t sound_timer;
         std::array<uint8_t, REGISTER_COUNT> registers;
         std::array<uint8_t, MEMORY_SIZE> memory;
-        uint8_t display[ROWS][COLLUMNS];
+        uint8_t display[COLUMNS][ROWS];
         bool waiting_for_up_key;
-        int key_up = -1;
+        int8_t key_up = -1;
     public:
         Chip8();
 

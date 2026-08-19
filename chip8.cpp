@@ -10,8 +10,6 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
-#include <iostream>
-#include <ostream>
 #include <string>
 #include <sys/types.h>
 
@@ -33,8 +31,8 @@ Chip8::Chip8() {
 
 void Chip8::cls(SDL_Renderer *renderer) {
     SDL_RenderClear(renderer);
-    for (int i = 0; i < ROWS; i++) {
-        for (int j = 0; j < COLLUMNS; j++)
+    for (int i = 0; i < COLUMNS; i++) {
+        for (int j = 0; j < ROWS; j++)
             display[i][j] = 0;
     }
 }
@@ -76,9 +74,9 @@ std::string integer_to_bit_string(uint8_t n) {
 }
 
 void Chip8::render(SDL_Renderer *renderer) {
-    SDL_FRect rect[ROWS][COLLUMNS];
-    for (uint8_t x = 0; x < ROWS; x++) {
-        for (uint8_t y = 0; y < COLLUMNS; y++) {
+    SDL_FRect rect[COLUMNS][ROWS];
+    for (uint8_t x = 0; x < COLUMNS; x++) {
+        for (uint8_t y = 0; y < ROWS; y++) {
             rect[x][y].w = PIXEL_SIZE;
             rect[x][y].h = PIXEL_SIZE;
             rect[x][y].x = x * PIXEL_SIZE;
@@ -99,8 +97,8 @@ void Chip8::draw(SDL_Renderer *renderer, uint8_t reg_x, uint8_t reg_y, uint8_t n
     }
     uint8_t x = registers[reg_x];
     uint8_t y = registers[reg_y];
-    x %= ROWS;
-    y %= COLLUMNS;
+    x %= COLUMNS;
+    y %= ROWS;
     uint8_t initial_x = x;
     registers[15] = 0;
     for (int i = 0; i < n; i++) {
