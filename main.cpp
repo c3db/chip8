@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <ostream>
 #define SDL_MAIN_USE_CALLBACKS 1
 
 #include <SDL3/SDL_error.h>
@@ -29,7 +30,7 @@
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
-static Chip8 *chip = NULL;
+static Chip8 chip;
 static std::ifstream rom;
 constexpr double ms_per_second = 1000.0 / 700.0;
 constexpr double frames_per_second = 1000.0 / 60.0;
@@ -71,12 +72,12 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     }
 
     SDL_SetRenderLogicalPresentation(renderer, WIDTH, HEIGHT, SDL_LOGICAL_PRESENTATION_LETTERBOX);
-    chip = new Chip8();
     rom.open(argv[1], std::ios::binary);
     if (!rom) {
         SDL_Log("Coudn't load file.");
         return SDL_APP_FAILURE;
     }
+    chip.addProgram(&rom);
     spec.channels = 1;
     spec.format = SDL_AUDIO_F32;
     spec.freq = 8000;
@@ -85,9 +86,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
         SDL_Log("Couldn't create audio stream: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    chip->addProgram(&rom);
 
     return SDL_APP_CONTINUE;
+}
+
+void send_key_up(SDL_Event *event) {
+    if(chip.waiting_for_up_key)
+        chip.key_up = chip.get_key(event->key.scancode);
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
@@ -96,8 +101,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
             return SDL_APP_SUCCESS;
             break;
         case SDL_EVENT_KEY_UP:
-            if(chip->waiting_for_up_key)
-                chip->key_up = chip->get_key(event->key.scancode);
+            send_key_up(event);
+            break;
     }
     return SDL_APP_CONTINUE;
 }
@@ -107,10 +112,10 @@ void instruction0(Instruction instruction) {
         case 0x00:
             switch (instruction.second_byte) {
                 case 0xe0:
-                    chip->cls(renderer);
+                    chip.cls(renderer);
                     break;
                 case 0xee:
-                    chip->return_from_subroutine();
+                    chip.return_from_subroutine();
                     break;
                 default:
                     break;
@@ -124,31 +129,31 @@ void instruction0(Instruction instruction) {
 void instruction8(Instruction instruction) {
     switch (instruction.forth_nibble()) {
         case 0x0:
-            chip->set_VX_to_VY(instruction.second_nibble(), instruction.third_nibble());
+            chip.set_VX_to_VY(instruction.second_nibble(), instruction.third_nibble());
             break;
         case 0x1:
-            chip->binary_or(instruction.second_nibble(), instruction.third_nibble());
+            chip.binary_or(instruction.second_nibble(), instruction.third_nibble());
             break;
         case 0x2:
-            chip->binary_and(instruction.second_nibble(), instruction.third_nibble());
+            chip.binary_and(instruction.second_nibble(), instruction.third_nibble());
             break;
         case 0x3:
-            chip->logical_xor(instruction.second_nibble(), instruction.third_nibble());
+            chip.logical_xor(instruction.second_nibble(), instruction.third_nibble());
             break;
         case 0x4:
-            chip->add_VX_carry(instruction.second_nibble(), instruction.third_nibble());
+            chip.add_VX_carry(instruction.second_nibble(), instruction.third_nibble());
             break;
         case 0x5:
-            chip->subtract_VX_VY(instruction.second_nibble(), instruction.third_nibble());
+            chip.subtract_VX_VY(instruction.second_nibble(), instruction.third_nibble());
             break;
         case 0x6:
-            chip->shift_right(instruction.second_nibble());
+            chip.shift_right(instruction.second_nibble(), instruction.third_nibble());
             break;
          case 0x7:
-            chip->subtract_VY_VX(instruction.second_nibble(), instruction.third_nibble());
+            chip.subtract_VY_VX(instruction.second_nibble(), instruction.third_nibble());
             break;
         case 0xE:
-            chip->shift_left(instruction.second_nibble());
+            chip.shift_left(instruction.second_nibble(), instruction.third_nibble());
             break;
         default:
             break;
@@ -158,10 +163,10 @@ void instruction8(Instruction instruction) {
 void instructionE(Instruction instruction) {
     switch (instruction.third_nibble()) {
         case 0x9:
-            chip->is_pressed(instruction.second_nibble());
+            chip.is_pressed(instruction.second_nibble());
             break;
         case 0xA:
-            chip->is_not_pressed(instruction.second_nibble());
+            chip.is_not_pressed(instruction.second_nibble());
             break;
         default:
             break;
@@ -171,31 +176,31 @@ void instructionE(Instruction instruction) {
 void instructionF(Instruction instruction) {
     switch (instruction.second_byte) {
         case 0x07:
-            chip->set_VX_to_delay(instruction.second_nibble());
+            chip.set_VX_to_delay(instruction.second_nibble());
             break;
         case 0x0A:
-            chip->set_VX_key_pressed(instruction.second_nibble());
+            chip.set_VX_key_pressed(instruction.second_nibble());
             break;
         case 0x15:
-            chip->set_delay_to_VX(instruction.second_nibble());
+            chip.set_delay_to_VX(instruction.second_nibble());
             break;
         case 0x18:
-            chip->set_sound_timer_to_VX(instruction.second_nibble());
+            chip.set_sound_timer_to_VX(instruction.second_nibble());
             break;
         case 0x1E:
-            chip->add_I(instruction.second_nibble());
+            chip.add_I(instruction.second_nibble());
             break;
         case 0x29:
-            chip->set_I_to_sprite(instruction.second_nibble());
+            chip.set_I_to_sprite(instruction.second_nibble());
             break;
         case 0x33:
-            chip->decimal_convertion(instruction.second_nibble());
+            chip.decimal_convertion(instruction.second_nibble());
             break;
         case 0x55:
-            chip->store(instruction.second_nibble());
+            chip.store(instruction.second_nibble());
             break;
         case 0x65:
-            chip->load(instruction.second_nibble());
+            chip.load(instruction.second_nibble());
             break;
         default:
             break;
@@ -208,20 +213,35 @@ void print_instruction(Instruction instruction) {
     std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(instruction.second_byte) << '\n';
 }
 void print_chip_information() {
-    std::cout << "PC = " << static_cast<int>(chip->pc) << std::endl;
-    std::cout << "I = " << static_cast<int>(chip->i) << std::endl;
+    std::cout << "PC = " << static_cast<int>(chip.pc) << std::endl;
+    std::cout << "I = " << static_cast<int>(chip.i) << std::endl;
     std::cout << "Registers: ";
-    for (int i = 0; i < chip->registers.size(); i++)
-        std::cout << "registers[" << i << "] " << static_cast<int>(chip->registers[i]) << std::endl;
+    for (int i = 0; i < chip.registers.size(); i++)
+        std::cout << "registers[" << i << "] " << static_cast<int>(chip.registers[i]) << std::endl;
 }
 #endif
 
 SDL_AppResult SDL_AppIterate(void* appstate) {
     SDL_PauseAudioStreamDevice(stream);
     uint64_t last_time, current_time;
-    Instruction instruction = chip->get_instruction();
+    Instruction instruction = chip.get_instruction();
 #ifdef _DEBUG
     print_instruction(instruction);
+    print_chip_information();
+    bool wait_for_n = true;
+    SDL_Event event;
+    while (wait_for_n) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_EVENT_QUIT)
+                return SDL_APP_SUCCESS;
+            else if (event.type == SDL_EVENT_KEY_DOWN && event.key.scancode == SDL_SCANCODE_N) {
+                std::cout << event.key.scancode << std::endl;
+                wait_for_n = false;
+                send_key_up(&event);
+          }
+        }
+    }
+    print_chip_information();
 #endif
     static uint64_t delay_last_time = SDL_GetPerformanceCounter();
     last_time = SDL_GetPerformanceCounter();
@@ -230,43 +250,43 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
             instruction0(instruction);
             break;
         case 0x1:
-            chip->jmp(instruction.get_address(3));
+            chip.jmp(instruction.get_address(3));
             break;
         case 0x2:
-            chip->call_subroutine(instruction.get_address(3));
+            chip.call_subroutine(instruction.get_address(3));
             break;
         case 0x3:
-            chip->skip_if_equal(instruction.second_nibble(), instruction.get_address(2));
+            chip.skip_if_equal(instruction.second_nibble(), instruction.get_address(2));
             break;
         case 0x4:
-            chip->skip_if_not_equal(instruction.second_nibble(), instruction.get_address(2));
+            chip.skip_if_not_equal(instruction.second_nibble(), instruction.get_address(2));
             break;
         case 0x5:
-            chip->skip_if_reg_equal(instruction.second_nibble(), instruction.third_nibble());
+            chip.skip_if_reg_equal(instruction.second_nibble(), instruction.third_nibble());
             break;
         case 0x6:
-            chip->set_VX(instruction.second_nibble(), instruction.second_byte);
+            chip.set_VX(instruction.second_nibble(), instruction.second_byte);
             break;
         case 0x7:
-            chip->add_VX(instruction.second_nibble(), instruction.second_byte);
+            chip.add_VX(instruction.second_nibble(), instruction.second_byte);
             break;
         case 0x8:
             instruction8(instruction);
             break;
         case 0x9:
-            chip->skip_if_reg_not_equal(instruction.second_nibble(), instruction.third_nibble());
+            chip.skip_if_reg_not_equal(instruction.second_nibble(), instruction.third_nibble());
             break;
         case 0xa:
-            chip->set_I(instruction.get_address(3));
+            chip.set_I(instruction.get_address(3));
             break;
         case 0xb:
-            chip->jump(instruction.get_address(3));
+            chip.jump(instruction.get_address(3));
             break;
         case 0xc:
-            chip->set_VX_random(instruction.second_nibble(), instruction.get_address(2));
+            chip.set_VX_random(instruction.second_nibble(), instruction.get_address(2));
             break;
         case 0xd:
-            chip->draw(renderer, instruction.second_nibble(), instruction.third_nibble(), instruction.forth_nibble());
+            chip.draw(renderer, instruction.second_nibble(), instruction.third_nibble(), instruction.forth_nibble());
             break;
         case 0xe:
             instructionE(instruction);
@@ -280,10 +300,10 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
     current_time = SDL_GetPerformanceCounter();
     double delay_frame_ticks = (double)((current_time - delay_last_time) * 1000) / SDL_GetPerformanceFrequency();
     if (delay_frame_ticks >= frames_per_second) {
-        chip->decrementTimers();
+        chip.decrementTimers();
         delay_last_time = current_time;
     }
-    if (chip->sound_timer != 0) {
+    if (chip.sound_timer != 0) {
         SDL_ResumeAudioStreamDevice(stream);
     }
     double frame_ticks = (double)((current_time - last_time) * 1000) / SDL_GetPerformanceFrequency();

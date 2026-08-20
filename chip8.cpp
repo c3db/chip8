@@ -336,7 +336,9 @@ void Chip8::subtract_VX_VY(uint8_t reg_x, uint8_t reg_y) {
         registers[15] = 1;
 }
 
-void Chip8::shift_right(uint8_t reg_x) {
+void Chip8::shift_right(uint8_t reg_x, uint8_t reg_y) {
+//AMBIGOUS
+//    registers[reg_x] = registers[reg_y];
     uint8_t x = registers[reg_x];
     registers[reg_x] >>= 1;
     registers[15] = 0;
@@ -344,11 +346,13 @@ void Chip8::shift_right(uint8_t reg_x) {
         registers[15] = 1;
 }
 
-void Chip8::shift_left(uint8_t reg_x) {
+void Chip8::shift_left(uint8_t reg_x, uint8_t reg_y) {
+//AMBIGOUS
+//    registers[reg_x] = registers[reg_y];
     uint8_t x = registers[reg_x];
     registers[reg_x] <<= 1;
     registers[15] = 0;
-    if (x & 0x8)
+    if (x & 0x80)
         registers[15] = 1;
 }
 
@@ -365,6 +369,8 @@ void Chip8::store(uint8_t reg_x) {
     for (int i = 0; i <= reg_x; i++) {
         memory[this->i + i] = registers[i];
     }
+//AMBIGOUS
+//    i += reg_x + 1;
 }
 
 void Chip8::decimal_convertion(uint8_t reg_x) {
@@ -392,6 +398,8 @@ void Chip8::load(uint8_t reg_x) {
     for (int i = 0; i <= reg_x; i++) {
         registers[i] = memory[this->i + i];
     }
+//AMBIGOUS
+//    i += reg_x + 1;
 }
 
 void Chip8::addProgram(std::ifstream *rom) {

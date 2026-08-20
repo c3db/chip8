@@ -49,10 +49,10 @@ class Chip8 {
         void add_VX_carry(uint8_t reg_x, uint8_t reg_y); // 8XY4
         void subtract_VX_VY(uint8_t reg_x, uint8_t reg_y); //8XY5
         // AMBIGOUS INSTRUCTION
-        void shift_right(uint8_t reg_x); // 8XY6
+        void shift_right(uint8_t reg_x, uint8_t reg_y); // 8XY6
         void subtract_VY_VX(uint8_t reg_x, uint8_t reg_y); //8XY7
         // AMBIGOUS INSTRUCTION
-        void shift_left(uint8_t reg_x); // 8XYE
+        void shift_left(uint8_t reg_x, uint8_t reg_y); // 8XYE
         void skip_if_reg_not_equal(uint8_t reg_x, uint8_t reg_y); // 9XY0
         void set_I(uint16_t address); // ANNN
         void jump(uint16_t addresss); // BNNN
